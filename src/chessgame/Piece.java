@@ -24,7 +24,7 @@ public class Piece {
     public boolean hadMovedLastMove = false;
     public boolean isAttacked = false;
     
-    private final ArrayList<Move> possibleMoves = new ArrayList();
+    private final ArrayList<Move> possibleMoves = new ArrayList<>();
     
     public Piece() {
         this.name = "";
