@@ -1,0 +1,11 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Run Chess Game",
+      "request": "launch",
+      "mainClass": "chessgame.Window"
+    }
+  ]
+}
