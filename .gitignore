@@ -1,0 +1,18 @@
+# Java compiled files
+*.class
+
+# VS Code settings
+.vscode/*
+!.vscode/launch.json 
+
+# NetBeans build folders
+build/
+dist/
+nbproject/private/
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
