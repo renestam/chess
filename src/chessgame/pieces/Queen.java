@@ -13,7 +13,7 @@ import chessgame.Square;
  *
  * @author arvid.renestam
  */
-public final class Queen extends Piece{
+public final class Queen extends Piece {
     
     public Queen(boolean isWhite) {
         super("queen", isWhite);
