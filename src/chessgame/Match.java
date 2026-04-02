@@ -54,12 +54,12 @@ public final class Match {
     public String toString() {
         String text = "";
         
-        text += whitePlayer.getName();
+        text += whitePlayer.getName() + " ";
         text += victoryLetter(true);
         
         text += " vs. ";
         
-        text += blackPlayer.getName();
+        text += blackPlayer.getName() + " ";
         text += victoryLetter(false);
         
         text += ", Moves: " + movesPlayed;
@@ -69,8 +69,9 @@ public final class Match {
     
     private String victoryLetter(boolean isWhitePlayer) {
         if (winner.isBlank()) return "";
-        if (winner.equals("stalemate")) return " (SM) ";
-        if (isWhitePlayer && winner.equals("white")) return " (W)";
-        return " (L)"; 
+        if (winner.equals("stalemate")) return "(SM)";
+        if (isWhitePlayer && winner.equals("white")) return "(W)";
+        if (!isWhitePlayer && winner.equals("black")) return "(W)";
+        return "(L)"; 
     }
 }
