@@ -4,8 +4,8 @@
  */
 package chessgame.server;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  *
@@ -13,15 +13,19 @@ import java.util.Deque;
  */
 public class Lobby {
     
-    private Deque<ClientManager> waitingClients = new ArrayDeque<>();
+    // A thread-safe queue for handling concurrent connections
+    private final BlockingQueue<ClientManager> waitingClients = new LinkedBlockingQueue<>();
     
-    
-    public void addClientManager(ClientManager cm) {
+    public void addCM(ClientManager cm) {
         waitingClients.add(cm);
     }
     
-    public ClientManager getClientManager() {
-        return waitingClients.pollFirst();
+    public ClientManager getOneCM() {
+        // poll() returns null if the queue is empty instead of crashing
+        return waitingClients.poll();
     }
     
+    public int getNoOfWaitingClients() {
+        return waitingClients.size();
+    }
 }

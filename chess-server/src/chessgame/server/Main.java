@@ -19,7 +19,7 @@ public class Main {
      */
     public static void main(String[] args) {
         try {
-            Server server = new Server();
+            new Server().start();
         } catch (IOException ex) {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }

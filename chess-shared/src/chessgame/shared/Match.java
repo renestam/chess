@@ -66,7 +66,11 @@ public final class Match {
     private String victoryLetter(boolean isWhitePlayer) {
         if (winner.isBlank()) return "";
         if (winner.equals("stalemate")) return " (SM) ";
-        if (isWhitePlayer && winner.equals("white")) return " (W)";
-        return " (L)"; 
+
+        if (winner.equals("white")) {
+            return isWhitePlayer ? " (W)" : " (L)";
+        } else { // winner is "black"
+            return isWhitePlayer ? " (L)" : " (W)";
+        }
     }
 }

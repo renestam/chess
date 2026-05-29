@@ -4,11 +4,13 @@
  */
 package chessgame.shared;
 
+import java.io.Serializable;
+
 /**
  *
  * @author arvid.renestam
  */
-public final class Move {
+public final class Move implements Serializable {
     
     private final Square oldSquare;
     private final Square newSquare;
@@ -27,7 +29,6 @@ public final class Move {
     public boolean isValid = true;
     
     public Move() {
-        // FIXED: Replaced default constructor arguments to match the refactored Square constructor
         this.oldSquare = new Square(64, null, true);
         this.newSquare = new Square(64, null, true);
     }
@@ -35,41 +36,18 @@ public final class Move {
     public Move(Square oldSquare, Square newSquare) {
         this.oldSquare = oldSquare;
         this.newSquare = newSquare;
-        // FIXED: Replaced direct field access (.piece) with encapsulated getter (.getPiece())
         this.oldSquarePiece = oldSquare.getPiece();
         this.newSquarePiece = newSquare.getPiece();
     }
     
-    public Square getOldSquare() {
-        return oldSquare;
-    }
+    public Square getOldSquare() { return oldSquare; }
+    public Square getNewSquare() { return newSquare; }
+    public Piece getOldSquarePiece() { return oldSquarePiece; }
+    public Piece getNewSquarePiece() { return newSquarePiece; }
+    public Piece getCapturedPiece() { return capturedPiece; }
+    public Square[] getAdditionalSquares() { return additionalSquares; }
     
-    public Square getNewSquare() {
-        return newSquare;
-    }
-    
-    public Piece getOldSquarePiece() {
-        return oldSquarePiece;
-    }
-    
-    public Piece getNewSquarePiece() {
-        return newSquarePiece;
-    }
-    
-    public Piece getCapturedPiece() {
-        return capturedPiece;
-    }
-    
-    public Square[] getAdditionalSquares() {
-        return additionalSquares;
-    }
-    
-    public void setAdditionalSquare(Square[] square) {
-        additionalSquares = square;
-    }
-    
-    public void setCapturedPiece(Piece piece) {
-        capturedPiece = piece;
-    }
+    public void setAdditionalSquare(Square[] square) { additionalSquares = square; }
+    public void setCapturedPiece(Piece piece) { capturedPiece = piece; }
     
 }

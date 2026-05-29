@@ -4,12 +4,10 @@
  */
 package chessgame.server;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -17,43 +15,77 @@ import java.util.logging.Logger;
  */
 public class ClientManager {
 
-    private Socket s;
-    private DataInputStream streamIn;
-    private DataOutputStream streamOut;
+    private final Socket socket;
+    private ObjectOutputStream streamOut;
+    private ObjectInputStream streamIn;
+    private boolean running = true;
 
-    public ClientManager(Socket s) {
-        this.s = s;
+    public ClientManager(Socket socket) {
+        this.socket = socket;
         try {
-            streamIn = new DataInputStream(s.getInputStream());
-            streamOut = new DataOutputStream(s.getOutputStream());
+            // CRITICAL ORDER: Output stream must be initialized FIRST and flushed
+            this.streamOut = new ObjectOutputStream(socket.getOutputStream());
+            this.streamOut.flush(); 
+            
+            this.streamIn = new ObjectInputStream(socket.getInputStream());
         } catch (IOException ex) {
-            System.out.println("problem. fixa.");
+            System.out.println("Failed to establish object streams for a client.");
+            closeConnection();
+            return;
         }
 
-        t2.start();
+        // Start the reading thread
+        listenerThread.start();
     }
 
-    Thread t2 = new Thread(() -> {
-        while (!Thread.interrupted()) {
+    private final Thread listenerThread = new Thread(() -> {
+        while (running && !Thread.interrupted()) {
             try {
-                String incomingMsg = streamIn.readUTF();
-                dealWithIncomingMsg(incomingMsg);
-            } catch (IOException e) {
-                System.out.println("problem: " + e.getMessage());
+                // 1. Read the incoming object (Move, Match, Packet etc.)
+                Object incomingData = streamIn.readObject();
+                
+                // 2. Handle it safely
+                dealWithIncomingData(incomingData);
+                
+            } catch (IOException | ClassNotFoundException e) {
+                // Catches user closing app, disconnecting, or stream errors
+                System.out.println("Client disconnected or error occurred: " + e.getMessage());
+                closeConnection(); 
+                break; // CRITICAL: Breaks out of the while loop so your CPU doesn't melt!
             }
         }
     });
     
-    private void sendMsgToClient(String msg) {
+    // Send objects (like Move or Match updates) back to this specific client
+    public void sendObjectToClient(Object obj) {
         try {
-            streamOut.writeUTF(msg);
+            if (streamOut != null) {
+                streamOut.writeObject(obj);
+                streamOut.flush();
+            }
         } catch (IOException ex) {
-            Logger.getLogger(ClientManager.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Error sending object to client: " + ex.getMessage());
+            closeConnection();
         }
     }
 
-    private void dealWithIncomingMsg(String incomingMsg) {
-        System.out.println(incomingMsg);
+    private void dealWithIncomingData(Object obj) {
+        // This is where you pass objects off to your server game logic!
+        System.out.println("Received object from client: " + obj.getClass().getSimpleName());
     }
 
+    // Safely tears everything down without throwing unhandled exceptions
+    public synchronized void closeConnection() {
+        if (!running) return;
+        running = false;
+        try {
+            listenerThread.interrupt();
+            if (streamIn != null) streamIn.close();
+            if (streamOut != null) streamOut.close();
+            if (socket != null && !socket.isClosed()) socket.close();
+            System.out.println("Client resources cleaned up cleanly.");
+        } catch (IOException e) {
+            // Soft catch during forced closure
+        }
+    }
 }
