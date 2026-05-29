@@ -1,0 +1,8 @@
+GWDTS
+0.0
+Lurpit
+0.0
+Wopuff
+2.0
+Wombat
+1.0
