@@ -8,14 +8,14 @@ import chessgame.shared.Board;
 import chessgame.shared.Match;
 import chessgame.shared.Move;
 import chessgame.shared.Square;
-import chessgame.shared.Piece; // Imported Piece
+import chessgame.shared.Piece; 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.ImageObserver;
 
 /**
- *
+ * Handles the client-side board view rendering and flipped index perspective configurations.
  * @author arvid
  */
 public class ClientBoard {
@@ -32,6 +32,8 @@ public class ClientBoard {
     // UI State replacing the shared Square fields
     private final boolean[] possibleMoves = new boolean[64];
     
+    private boolean isWhitePerspective = true; 
+    
     public ClientBoard(Board board) {
         this.board = board;
         this.squares = board.getSquares();
@@ -40,6 +42,14 @@ public class ClientBoard {
     public Board getBoard() { return board; }
     public int getBoardSize() { return boardSize; }
     public int getSquareSize() { return squareSize; }
+    
+    public void setIsWhitePerspective(boolean isWhite) {
+        this.isWhitePerspective = isWhite;
+    }
+    
+    public boolean getIsWhitePerspective() {
+        return this.isWhitePerspective;
+    }
     
     private Color backgroundColor(boolean isTop) {
         Match currentMatch = board.getCurrentMatch();
@@ -84,8 +94,8 @@ public class ClientBoard {
         g.fillRect(0, height / 2, width, height);
         
         // board size is the size of smallest panel dimension
-        if (width - Leaderboard.WIDTH < height) {
-            boardSize = width - Leaderboard.WIDTH - 2 * padding;
+        if (width - ClientLeaderboard.WIDTH < height) {
+            boardSize = width - ClientLeaderboard.WIDTH - 2 * padding;
         } else {
             boardSize = height - 2 * padding;
         }
@@ -99,23 +109,33 @@ public class ClientBoard {
         int lastMoveOldIndex = lastMove != null && lastMove.getOldSquare() != null ? lastMove.getOldSquare().getIndex() : -1;
         int lastMoveNewIndex = lastMove != null && lastMove.getNewSquare() != null ? lastMove.getNewSquare().getIndex() : -1;
         
-        // FIXED: Loop over all 64 squares (removed the - 1)
-        for (int i = 0; i < squares.length; i++) {
-            if (squares[i] != null) {
-                // Determine UI state for the square
-                boolean isSelected = (i == selectedSquareIndex);
-                boolean isPossibleMove = possibleMoves[i];
-                boolean isLastMove = (i == lastMoveOldIndex || i == lastMoveNewIndex);
+        // Loop through visual grid spaces
+        for (int i = 0; i < 64; i++) {
+            // Invert index logic for matching the correct state array cell
+            int actualIndex = isWhitePerspective ? i : (63 - i);
+            
+            if (squares[actualIndex] != null) {
+                // Determine UI state using the actual raw array data index
+                boolean isSelected = (actualIndex == selectedSquareIndex);
+                boolean isPossibleMove = possibleMoves[actualIndex];
+                boolean isLastMove = (actualIndex == lastMoveOldIndex || actualIndex == lastMoveNewIndex);
                 
-                // Pass the UI states directly into the ClientSquare
-                ClientSquare square = new ClientSquare(squares[i], isSelected, isPossibleMove, isLastMove);
+                // Construct a temporary placeholder visual square matching your specific constructor.
+                // It maps the current screen draw index 'i', loads the piece data, and replicates 
+                // the base color identity layout properties safely.
+                Square visualSquare = new Square(i, squares[actualIndex].getPiece(), squares[actualIndex].isWhite());
+                
+                ClientSquare square = new ClientSquare(visualSquare, isSelected, isPossibleMove, isLastMove);
                 square.draw(g, observer, squareSize, panelSize);
             }
         }
     }
     
     // when a square is clicked - select square or move piece
-    void selectSquare(int index) {
+    void selectSquare(int targetIndex) {
+        // Invert index logic for transforming screen coordinates to engine coordinates
+        int index = isWhitePerspective ? targetIndex : (63 - targetIndex);
+
         if (!Board.indexIsValid(index)) return;
         
         // unselect square
@@ -125,16 +145,14 @@ public class ClientBoard {
             return;
         }
         
-        boolean whiteToMove = board.whiteToMove();
         boolean isValid = false;
         
-        // move piece (FIXED: Null-safety and encapsulated move lookup)
+        // move piece
         if (selectedSquareIndex != unselectedSquareIndex && isTurnOfSelectedPiece()) {
             Piece selectedPiece = squares[selectedSquareIndex].getPiece();
             
             if (selectedPiece != null) {
                 Move moveToMake = null;
-                // Find the specific move in the piece's possible moves
                 for (Move move : selectedPiece.getPossibleMoves()) {
                     if (move.getNewSquare().getIndex() == index) {
                         moveToMake = move;
@@ -149,7 +167,6 @@ public class ClientBoard {
         } 
         
         if (isValid) {
-            // Note: board.movePiece() already flips whiteToMove, so we check the new turn state
             if (board.whiteToMove()) {
                 board.getWhiteKing().isAttacked = false;
             } else {
@@ -157,11 +174,8 @@ public class ClientBoard {
             }
             
             board.checkMatchIsWon();
-            
-            // Deselect piece after moving
             selectedSquareIndex = unselectedSquareIndex;
         }
-        // select square
         else {
             selectedSquareIndex = index;
         }
@@ -173,14 +187,12 @@ public class ClientBoard {
     
     // updates the possibleMoves array for UI rendering
     private void setVisiblePossibleMoves() {
-        // remove all marks
         for (int i = 0; i < possibleMoves.length; i++) {
             possibleMoves[i] = false;
         }
         
         if (!isTurnOfSelectedPiece()) return;
         
-        // add mark to valid moves of the selected piece
         if (selectedSquareIndex != unselectedSquareIndex && squares[selectedSquareIndex].hasPiece()) {
             Piece selectedPiece = squares[selectedSquareIndex].getPiece();
             for (Move move : selectedPiece.getPossibleMoves()) {
@@ -192,7 +204,6 @@ public class ClientBoard {
     }
     
     private boolean isTurnOfSelectedPiece() {
-        // FIXED: Used unselectedSquareIndex instead of hardcoded 65, and added null check
         if (selectedSquareIndex == unselectedSquareIndex) return false;
         
         Piece piece = board.getSquares()[selectedSquareIndex].getPiece();
@@ -200,5 +211,4 @@ public class ClientBoard {
         
         return piece.isWhite() == board.whiteToMove();
     }
-    
 }

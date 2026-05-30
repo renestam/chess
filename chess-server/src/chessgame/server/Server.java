@@ -7,56 +7,82 @@ package chessgame.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
- *
+ * 
  * @author arvid.renestam
  */
 public class Server implements Runnable {
     
     private final ServerSocket listeningSocket;
-    private Thread t = new Thread(this);
-    private Lobby lobby = new Lobby();
-    
+    private final Thread serverThread = new Thread(this);
+    private final Lobby lobby = new Lobby();
+    private boolean running = false;
     
     public Server() throws IOException {
+        // Explicitly binds the program to listen on port 3000
         listeningSocket = new ServerSocket(3000);
     }
     
     public Server start() {
-        t.start();
+        if (!running) {
+            this.running = true;
+            serverThread.start();
+            System.out.println("Server successfully listening for connections on port 3000!");
+        }
         return this;
     }
 
     @Override
     public void run() {
-        while(true) {
+        while (running && !Thread.interrupted()) {
             try {
+                // Blocks until a client inputs their IP address and hits Connect
                 Socket incomingSocket = listeningSocket.accept();
-                System.out.println("New client connected!");
+                System.out.println("New raw client socket connected from: " + incomingSocket.getRemoteSocketAddress());
                 
-                // 1. Wrap the connection and add them to the matchmaking lobby
+                // 1. Wrap connection inside Object-Stream manager
                 ClientManager newClient = new ClientManager(incomingSocket);
-                lobby.addCM(newClient);
                 
-                // 2. If we have 2 or more players, pull them out and start a game
-                if (lobby.getNoOfWaitingClients() >= 2) {
-                    ClientManager cm1 = lobby.getOneCM();
-                    ClientManager cm2 = lobby.getOneCM();
+                // 2. Thread-Safe Matchmaking Check
+                // We synchronize on the lobby object so that multiple client threads 
+                // cannot corrupt the queue state during checkout.
+                synchronized (lobby) {
+                    lobby.addCM(newClient);
+                    System.out.println("Client placed in queue. Total waiting: " + lobby.getNoOfWaitingClients());
                     
-                    // Ensure we actually got two valid clients before starting
-                    if (cm1 != null && cm2 != null) {
-                        System.out.println("Match found! Starting a new game...");
-                        // new Game(cm1, cm2); // This will spin up your game controller
+                    if (lobby.getNoOfWaitingClients() >= 2) {
+                        ClientManager cm1 = lobby.getOneCM();
+                        ClientManager cm2 = lobby.getOneCM();
+                        
+                        if (cm1 != null && cm2 != null) {
+                            System.out.println("Match found! Spinning up GameController...");
+                            
+                            // Instantiate your game controller to link these two communication pipelines together
+                            new GameController(cm1, cm2); 
+                        }
                     }
                 }
+                
             } catch (IOException ex) {
-                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                if (!listeningSocket.isClosed()) {
+                    System.err.println("Network acceptance crash: " + ex.getMessage());
+                }
             }
         }
     }
     
+    // Call this if you need to safely close down the hosting process
+    public synchronized void stop() {
+        this.running = false;
+        try {
+            serverThread.interrupt();
+            if (listeningSocket != null && !listeningSocket.isClosed()) {
+                listeningSocket.close();
+            }
+            System.out.println("Server listening hub terminated successfully.");
+        } catch (IOException e) {
+            // Soft catch during close routine
+        }
+    }
 }

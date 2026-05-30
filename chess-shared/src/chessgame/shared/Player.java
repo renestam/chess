@@ -4,11 +4,13 @@
  */
 package chessgame.shared;
 
+import java.io.Serializable;
+
 /**
  *
  * @author arvid.renestam
  */
-public final class Player {
+public final class Player implements Serializable {
     private final String name;
     private float score;
 

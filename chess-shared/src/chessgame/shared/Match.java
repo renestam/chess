@@ -4,18 +4,28 @@
  */
 package chessgame.shared;
 
+import java.io.Serializable;
+
 /**
  *
  * @author arvid.renestam
  */
-public final class Match {
+public final class Match implements Serializable {
+    
     private final Player whitePlayer, blackPlayer;
+    private boolean currentPlayerIsWhite;
     private String winner = ""; // white, black, stalemate
     private int movesPlayed = 0;
-
+    
     public Match(Player firstPlayer, Player secondPlayer) {
         this.whitePlayer = firstPlayer;
         this.blackPlayer = secondPlayer;
+    }
+
+    public Match(Player firstPlayer, Player secondPlayer, boolean currentPlayerIsWhite) {
+        this.whitePlayer = firstPlayer;
+        this.blackPlayer = secondPlayer;
+        this.currentPlayerIsWhite = currentPlayerIsWhite;
     }
     
     public Match(Player firstPlayer, Player secondPlayer, String winner, int movesPlayed) {
@@ -27,9 +37,17 @@ public final class Match {
     
     public Player getWhitePlayer() { return whitePlayer; }
     public Player getBlackPlayer() { return blackPlayer; }
+    public boolean getCurrentPlayerIsWhite() { return currentPlayerIsWhite; }
     public String getWinner() { return winner; }
     public int getMovesPlayed() { return movesPlayed; }
+    public boolean isActive() { return winner == null || winner.isBlank(); }
+    
     public void incrementMovesPlayed() { movesPlayed++; }
+    
+    public Match setCurrentPlayerIsWhite(boolean currentPlayerIsWhite) {
+        this.currentPlayerIsWhite = currentPlayerIsWhite;
+        return this;
+    }
     
     public void setWinner(String newWinner) {
         if (!winner.isBlank()) return;
@@ -73,4 +91,5 @@ public final class Match {
             return isWhitePlayer ? " (L)" : " (W)";
         }
     }
+    
 }

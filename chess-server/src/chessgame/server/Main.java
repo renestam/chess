@@ -5,23 +5,19 @@
 package chessgame.server;
 
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
- *
+ * 
  * @author arvid.renestam
  */
 public class Main {
 
-    /**
-     * @param args the command line arguments
-     */
     public static void main(String[] args) {
         try {
+            System.out.println("Initializing Chess Server on port 3000...");
             new Server().start();
         } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+           System.err.println("Server failed to boot: " + ex.getMessage());
         }
     }
     
