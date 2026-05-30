@@ -35,7 +35,6 @@ public class ClientBoard {
     private final int unselectedSquareIndex = 64;
     private int selectedSquareIndex = unselectedSquareIndex;
     
-    // UI State replacing the shared Square fields
     private final boolean[] possibleMoves = new boolean[64];
     
     private boolean isWhitePerspective = true; 
@@ -106,26 +105,18 @@ public class ClientBoard {
         // draw all squares
         squareSize = (int) Math.round(boardSize / 8.0);
         
-        // Fetch the last move to determine highlight colors
         Match currentMatch = board.getCurrentMatch();
         Move lastMove = currentMatch == null ? null : currentMatch.getLastMove();
         int lastMoveOldIndex = lastMove != null && lastMove.getOldSquare() != null ? lastMove.getOldSquare().getIndex() : -1;
         int lastMoveNewIndex = lastMove != null && lastMove.getNewSquare() != null ? lastMove.getNewSquare().getIndex() : -1;
-        
-        // Loop through visual grid spaces
         for (int i = 0; i < 64; i++) {
-            // Invert index logic for matching the correct state array cell
             int actualIndex = isWhitePerspective ? i : (63 - i);
             
             if (squares[actualIndex] != null) {
-                // Determine UI state using the actual raw array data index
                 boolean isSelected = (actualIndex == selectedSquareIndex);
                 boolean isPossibleMove = possibleMoves[actualIndex];
                 boolean isLastMove = (actualIndex == lastMoveOldIndex || actualIndex == lastMoveNewIndex);
                 
-                // Construct a temporary placeholder visual square matching your specific constructor.
-                // It maps the current screen draw index 'i', loads the piece data, and replicates 
-                // the base color identity layout properties safely.
                 Square visualSquare = new Square(i, squares[actualIndex].getPiece(), squares[actualIndex].isWhite());
                 
                 ClientSquare square = new ClientSquare(visualSquare, isSelected, isPossibleMove, isLastMove);

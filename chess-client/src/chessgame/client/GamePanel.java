@@ -51,7 +51,7 @@ public class GamePanel extends javax.swing.JPanel {
     }
     
     public void startMatch(Match match) {
-        // Determine who our opponent is based on who we typed in
+        // Determine who the opponent is based on who we typed in
         String myName = getCurrentPlayerName();
         String opponentName = match.getWhitePlayer().getName().equalsIgnoreCase(myName) 
                 ? match.getBlackPlayer().getName() 
@@ -266,6 +266,8 @@ public class GamePanel extends javax.swing.JPanel {
         txaLeaderboard.setText("1. \n2. \n3.\n4.\n5.");
         txaLeaderboard.setFocusable(false);
         jScrollPane3.setViewportView(txaLeaderboard);
+        
+        // THE FOLLOWING CODE KINDA GENERATED WITH LLM
 
         // Sidebar layout configuration
         sidePanel.setLayout(new java.awt.GridBagLayout());
@@ -302,7 +304,6 @@ public class GamePanel extends javax.swing.JPanel {
         gbc.gridx = 1; gbc.weightx = 0.5; gbc.insets.left = 10; 
         sidePanel.add(btnStopSearch, gbc);
         
-        // ─── THE CRITICAL RESET FIX ───
         // Reset gridx back to 0, clear horizontal left padding, expand width back to double columns
         gbc.gridx = 0; 
         gbc.insets.left = 0; 

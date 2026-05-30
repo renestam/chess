@@ -1,3 +1,7 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
 package chessgame.server;
 
 import chessgame.shared.Board;
@@ -23,24 +27,19 @@ public class GameController {
         this.whiteClient = cm1;
         this.blackClient = cm2;
         
-        // Link this controller instance to both network handlers
         this.whiteClient.setGameController(this);
         this.blackClient.setGameController(this);
         
         this.board = new Board();
         
-        System.out.println("GameController initialized and listening to both clients!");
+        System.out.println("GameController initialized.");
     }
     
-    /**
-     * Helper method to grab the opposing ClientManager.
-     */
     private ClientManager getOpponent(ClientManager sender) {
         if (sender == whiteClient) return blackClient;
         return whiteClient;
     }
     
-    // Central data hub where all deserialized incoming client objects land.
     public synchronized void handleIncomingData(ClientManager sender, Object obj) {
         if (obj instanceof Player player) {
             handlePlayerRegistration(sender, player);
@@ -49,31 +48,28 @@ public class GameController {
         }
     }
 
-    // Processes incoming client player profiles and alerts clients when the match begins.
     private void handlePlayerRegistration(ClientManager sender, Player player) {
         if (sender == whiteClient) {
             this.whitePlayerProfile = player;
-            System.out.println("White player profile registered: " + player.getName());
+            System.out.println("White player registered: " + player.getName());
         } else if (sender == blackClient) {
             this.blackPlayerProfile = player;
-            System.out.println("Black player profile registered: " + player.getName());
+            System.out.println("Black player registered: " + player.getName());
         }
         
-        // Once BOTH profiles are received, construct the Match context and alert clients
         if (whitePlayerProfile != null && blackPlayerProfile != null) {
-            System.out.println("Both profiles ready. Initializing match details broadcast...");
+            System.out.println("Both players ready. Initializing...");
             
             Match matchDetails = new Match(whitePlayerProfile, blackPlayerProfile);
             
             board.startNewMatch(matchDetails, board.whiteToMove());
             
-            // Send the match details to both clients so they know who they are playing against
+            // send match details to both clients
             whiteClient.sendObjectToClient(matchDetails.setCurrentPlayerIsWhite(true));
             blackClient.sendObjectToClient(matchDetails.setCurrentPlayerIsWhite(false));
         }
     }
 
-    // Validates turn compliance, updates server state, and replicates moves to the opponent.
     private void handlePlayerMove(ClientManager sender, Move move) {
         // Turn Enforcement
         if (sender == whiteClient && !board.whiteToMove()) {
@@ -87,13 +83,12 @@ public class GameController {
 
         System.out.println("Received a move attempt: " + move);
         
-        // Validate the move and apply to the official Server Board state 
+        // validate the move and apply to the official server board
         if (!board.makeMove(move, board.whiteToMove())) {
-            System.out.println("Rejected move: Illegal move rules violation.");
+            System.out.println("Rejected move: Illegal move.");
             return;
         }
         
-        // Broadcast the move to the opponent so their board updates on screen
         getOpponent(sender).sendObjectToClient(move);
     }
 }

@@ -12,7 +12,7 @@ import java.awt.image.ImageObserver;
 
 /**
  *
- * @author arvid
+ * @author arvid.renestam
  */
 public class ClientSquare {
     
@@ -85,4 +85,5 @@ public class ClientSquare {
     public Square getSharedSquare() {
         return square;
     }
+    
 }

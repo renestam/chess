@@ -108,7 +108,6 @@ public class Piece implements Serializable {
                 if (squares[newIndex].hasOppositeColoredPiece(currentSquare)) {
                     move.setCapture(true);
                     
-                    // FIXED: Replaced direct field access (.piece.name) with encapsulated getters (.getPiece().getName())
                     Piece targetPiece = squares[newIndex].getPiece();
                     if (targetPiece != null && "king".equals(targetPiece.getName())) {
                         targetPiece.isAttacked = true;

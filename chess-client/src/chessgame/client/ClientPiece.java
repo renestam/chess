@@ -13,7 +13,7 @@ import java.awt.image.ImageObserver;
 
 /**
  *
- * @author arvid
+ * @author arvid.renestam
  */
 public class ClientPiece {
     

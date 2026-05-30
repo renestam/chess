@@ -167,7 +167,6 @@ public final class Board {
             }
         }
         
-        // Prevent temporary validation looks from changing permanent boolean history states
         if (!move.isSimulation) {
             if (isRevert) {
                 oldSquare.getPiece().hasMoved = oldSquare.getPiece().hadMovedLastMove;

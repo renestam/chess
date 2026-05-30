@@ -70,7 +70,7 @@ public final class Move implements Serializable {
         Square localOld = localBoard.getSquares()[this.oldSquare.getIndex()];
         Square localNew = localBoard.getSquares()[this.newSquare.getIndex()];
 
-        // Create a clean local Move copy mapped to the correct RAM addresses
+        // Create a clean local Move copy
         Move localizedMove = new Move(localOld, localNew);
         localizedMove.isCapture = this.isCapture;
         localizedMove.isPromotion = this.isPromotion;
@@ -78,10 +78,9 @@ public final class Move implements Serializable {
         localizedMove.isCastle = this.isCastle;
         localizedMove.isValid = this.isValid;
 
-        // Copy additional layout arrays if handles promotions/castles
         if (this.additionalSquares != null) {
             Square[] localAdditional = new Square[this.additionalSquares.length];
-            for(int i = 0; i < this.additionalSquares.length; i++) {
+            for (int i = 0; i < this.additionalSquares.length; i++) {
                 localAdditional[i] = localBoard.getSquares()[this.additionalSquares[i].getIndex()];
             }
             localizedMove.setAdditionalSquare(localAdditional);

@@ -74,10 +74,8 @@ public final class Pawn extends Piece {
             
             // en passant en passant captures, look for pieces to the right and left
             for (int j = 0; j < enPassantOffsets.length; j++) {
-                // Changed enPassantOffsets[i] to enPassantOffsets[j] to match loop variable
                 int captureIndex = currentIndex + enPassantOffsets[j] * offsetDirection; 
 
-                // Guard clause. If there is no last move, en passant is impossible.
                 if (lastMove == null || lastMove.getNewSquare() == null || lastMove.getOldSquare() == null) {
                     continue; 
                 }
@@ -89,13 +87,12 @@ public final class Pawn extends Piece {
 
                 boolean isWhite = movedPiece.isWhite();
 
-                // Criteria for en passant evaluation
+                // criteria for en passant evaluation
                 boolean captureIndexIsLastMove = lastMove.getNewSquare().getIndex() == captureIndex;
                 boolean lastMoveStartedOnSecondRank = lastMove.getOldSquare().isRelativeRow(1, isWhite);
                 boolean lastMoveIsOnFourthRank = lastMove.getNewSquare().isRelativeRow(3, isWhite);
 
                 if (captureIndexIsLastMove && lastMoveStartedOnSecondRank && lastMoveIsOnFourthRank) {
-                    // Ensure the target moving index and capture squares are valid array cells before adding
                     if (Board.indexIsValid(newIndex) && Board.indexIsValid(captureIndex)) {
                         Move move = new Move(currentSquare, squares[newIndex]);
                         move.setEnpassant(true);

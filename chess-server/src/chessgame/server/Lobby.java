@@ -13,7 +13,6 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class Lobby {
     
-    // A thread-safe queue for handling concurrent connections
     private final BlockingQueue<ClientManager> waitingClients = new LinkedBlockingQueue<>();
     
     public void addCM(ClientManager cm) {
@@ -21,7 +20,6 @@ public class Lobby {
     }
     
     public ClientManager getOneCM() {
-        // poll() returns null if the queue is empty instead of crashing
         return waitingClients.poll();
     }
     

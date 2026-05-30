@@ -20,7 +20,7 @@ public class Server implements Runnable {
     private boolean running = false;
     
     public Server() throws IOException {
-        // Explicitly binds the program to listen on port 3000
+        // bind the program to listen on port 3000
         listeningSocket = new ServerSocket(3000);
     }
     
@@ -37,26 +37,21 @@ public class Server implements Runnable {
     public void run() {
         while (running && !Thread.interrupted()) {
             try {
-                // Blocks until a client inputs their IP address and hits Connect
                 Socket incomingSocket = listeningSocket.accept();
-                System.out.println("New raw client socket connected from: " + incomingSocket.getRemoteSocketAddress());
+                System.out.println("New client socket connected from: " + incomingSocket.getRemoteSocketAddress());
                 
-                // 1. Wrap connection inside Object-Stream manager
                 ClientManager newClient = new ClientManager(incomingSocket);
                 
-                // 2. Thread-Safe Matchmaking Check
-                // We synchronize on the lobby object so that multiple client threads 
-                // cannot corrupt the queue state during checkout.
                 synchronized (lobby) {
                     lobby.addCM(newClient);
-                    System.out.println("Client placed in queue. Total waiting: " + lobby.getNoOfWaitingClients());
+                    System.out.println("Client placed in queue.");
                     
                     if (lobby.getNoOfWaitingClients() >= 2) {
                         ClientManager cm1 = lobby.getOneCM();
                         ClientManager cm2 = lobby.getOneCM();
                         
                         if (cm1 != null && cm2 != null) {
-                            System.out.println("Match found! Spinning up GameController...");
+                            System.out.println("Match found! Creating GameController...");
                             
                             // Instantiate your game controller to link these two communication pipelines together
                             new GameController(cm1, cm2); 
@@ -66,13 +61,13 @@ public class Server implements Runnable {
                 
             } catch (IOException ex) {
                 if (!listeningSocket.isClosed()) {
-                    System.err.println("Network acceptance crash: " + ex.getMessage());
+                    System.err.println("Network crash: " + ex.getMessage());
                 }
             }
         }
     }
     
-    // Call this if you need to safely close down the hosting process
+    // safely close down the hosting process
     public synchronized void stop() {
         this.running = false;
         try {
@@ -80,7 +75,7 @@ public class Server implements Runnable {
             if (listeningSocket != null && !listeningSocket.isClosed()) {
                 listeningSocket.close();
             }
-            System.out.println("Server listening hub terminated successfully.");
+            System.out.println("Server listening terminated successfully.");
         } catch (IOException e) {
             // Soft catch during close routine
         }
