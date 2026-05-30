@@ -18,12 +18,10 @@ public class ClientSquare {
     
     private final Square square;
     
-    // UI states
-    public final boolean isSelected;
-    public final boolean isLastMove;
-    public final boolean isPossibleMove;
+    private final boolean isSelected;
+    private final boolean isLastMove;
+    private final boolean isPossibleMove;
     
-    // FIXED: Updated constructor to accept UI states
     public ClientSquare(Square square, boolean isSelected, boolean isPossibleMove, boolean isLastMove) {
         this.square = square;
         this.isSelected = isSelected;

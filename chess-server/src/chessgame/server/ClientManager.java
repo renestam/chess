@@ -10,8 +10,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 /**
- * Manages an individual client's input and output object streams.
- * Forwards deserialized network objects to the active GameController.
+ * 
  * @author arvid.renestam
  */
 public class ClientManager {
@@ -45,7 +44,7 @@ public class ClientManager {
         listenerThread.start();
     }
 
-    /**
+    /*
      * Sets or changes the active game manager for this connection pipeline.
      * Instantly flushes cached queue-stage objects up to the controller loop.
      */
@@ -77,9 +76,7 @@ public class ClientManager {
         }
     });
     
-    /**
-     * Sends objects (like Move or Match updates) back to this specific client.
-     */
+    // Sends objects (like Move or Match updates) back to this specific client.
     public void sendObjectToClient(Object obj) {
         try {
             if (streamOut != null) {
@@ -92,9 +89,7 @@ public class ClientManager {
         }
     }
 
-    /**
-     * Routes incoming data structures up to the assigned GameController or caches it.
-     */
+    // Routes incoming data structures up to the assigned GameController or caches it.
     private synchronized void dealWithIncomingData(Object obj) {
         System.out.println("Received object from client: " + obj.getClass().getSimpleName());
         
@@ -107,9 +102,7 @@ public class ClientManager {
         }
     }
 
-    /**
-     * Safely tears down everything without throwing unhandled exceptions.
-     */
+    // Safely tears down everything without throwing unhandled exceptions.
     public synchronized void closeConnection() {
         if (!running) return;
         running = false;

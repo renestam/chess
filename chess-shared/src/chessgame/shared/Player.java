@@ -11,6 +11,9 @@ import java.io.Serializable;
  * @author arvid.renestam
  */
 public final class Player implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
+    
     private final String name;
     private float score;
 
@@ -48,4 +51,5 @@ public final class Player implements Serializable {
         }
         return name + " (" + scoreString  + ")";
     }
+    
 }

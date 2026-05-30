@@ -15,13 +15,19 @@ import java.awt.Graphics;
 import java.awt.image.ImageObserver;
 
 /**
- * Handles the client-side board view rendering and flipped index perspective configurations.
- * @author arvid
+ * 
+ * @author arvid.renestam
  */
 public class ClientBoard {
     
+    public static final Color DEFAULT_BG_COLOR = new Color(40, 25, 25);
+    public static final Color LIGHTER_BG_COLOR = new Color(50, 35, 35);
+    public static final Color VICTORY_BG_COLOR = new Color(40, 200, 25);
+    public static final Color LOSS_BG_COLOR = new Color(150, 25, 25);
+    public static final Color STALEMATE_BG_COLOR = new Color(150, 150, 25);
+    
     Board board;
-    private final Square[] squares;
+    private final Square[] squares; // references the board object's squares array
     
     private int boardSize;
     private int squareSize;
@@ -54,31 +60,28 @@ public class ClientBoard {
     private Color backgroundColor(boolean isTop) {
         Match currentMatch = board.getCurrentMatch();
         
-        if (currentMatch == null) {
-            return new Color(40, 25, 25); // default background
-        }
+        if (currentMatch == null) { return DEFAULT_BG_COLOR; }
         
         String winner = currentMatch.getWinner();
-        
+       
         boolean noWinner = winner.isEmpty();
         boolean whiteWon = winner.equals("white");
         boolean blackWon = winner.equals("black");
         boolean stalemate = winner.equals("stalemate");
 
         if ((blackWon && isTop) || (whiteWon && !isTop)) {
-            return new Color(40, 150, 25); // green for winner
+            return VICTORY_BG_COLOR;
         } else if ((blackWon && !isTop) || (whiteWon && isTop)) {
-            return new Color(150, 25, 25); // red for loser
+            return LOSS_BG_COLOR;
         } else if (stalemate) {
-            return new Color(150, 150, 25); // yellow for stalemate
+            return STALEMATE_BG_COLOR;
         } else if (noWinner && board.currentMatchHasStarted()) {
             // highlight the current player to move
             if ((board.whiteToMove() && !isTop) || (!board.whiteToMove() && isTop)) {
-                return new Color(50, 35, 35); // lighter highlight
+                return LIGHTER_BG_COLOR;
             }
         }
-
-        return new Color(40, 25, 25); // default background
+        return DEFAULT_BG_COLOR;
     }
     
     // draw the squares in a grid
@@ -102,10 +105,10 @@ public class ClientBoard {
         
         // draw all squares
         squareSize = (int) Math.round(boardSize / 8.0);
-        Square[] squares = board.getSquares();
         
         // Fetch the last move to determine highlight colors
-        Move lastMove = board.getLastMove();
+        Match currentMatch = board.getCurrentMatch();
+        Move lastMove = currentMatch == null ? null : currentMatch.getLastMove();
         int lastMoveOldIndex = lastMove != null && lastMove.getOldSquare() != null ? lastMove.getOldSquare().getIndex() : -1;
         int lastMoveNewIndex = lastMove != null && lastMove.getNewSquare() != null ? lastMove.getNewSquare().getIndex() : -1;
         
@@ -132,7 +135,7 @@ public class ClientBoard {
     }
     
     // when a square is clicked - select square or move piece
-    void selectSquare(int targetIndex) {
+    void selectSquare(int targetIndex, ServerConnection serverConnection) {
         // Invert index logic for transforming screen coordinates to engine coordinates
         int index = isWhitePerspective ? targetIndex : (63 - targetIndex);
 
@@ -151,7 +154,7 @@ public class ClientBoard {
         if (selectedSquareIndex != unselectedSquareIndex && isTurnOfSelectedPiece()) {
             Piece selectedPiece = squares[selectedSquareIndex].getPiece();
             
-            if (selectedPiece != null) {
+            if (selectedPiece != null && selectedPiece.isWhite() == isWhitePerspective) {
                 Move moveToMake = null;
                 for (Move move : selectedPiece.getPossibleMoves()) {
                     if (move.getNewSquare().getIndex() == index) {
@@ -161,7 +164,8 @@ public class ClientBoard {
                 }
                 
                 if (moveToMake != null) {
-                    isValid = board.movePiece(moveToMake);  
+                    isValid = board.makeMove(moveToMake, isWhitePerspective);  
+                    serverConnection.sendObject(moveToMake);
                 }
             }
         } 
@@ -195,8 +199,9 @@ public class ClientBoard {
         
         if (selectedSquareIndex != unselectedSquareIndex && squares[selectedSquareIndex].hasPiece()) {
             Piece selectedPiece = squares[selectedSquareIndex].getPiece();
+            if (selectedPiece.isWhite() == isWhitePerspective)
             for (Move move : selectedPiece.getPossibleMoves()) {
-                if (move.isValid) {
+                if (move.isValid()) {
                     possibleMoves[move.getNewSquare().getIndex()] = true;
                 }
             }

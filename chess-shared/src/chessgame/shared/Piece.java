@@ -4,13 +4,17 @@
  */
 package chessgame.shared;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  *
  * @author arvid.renestam
  */
-public class Piece {
+public class Piece implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
+    
     private final String name;
     private final boolean isWhite;
     
@@ -19,11 +23,6 @@ public class Piece {
     public boolean isAttacked = false;
     
     private final ArrayList<Move> possibleMoves = new ArrayList<>();
-    
-    public Piece() {
-        this.name = "";
-        this.isWhite = true;
-    }
 
     public Piece(String pieceName, boolean isWhite) {
         this.name = pieceName;
@@ -50,6 +49,8 @@ public class Piece {
             possibleMoves.add(move);
         }
     }
+    
+    public void clearPossibleMoves() { possibleMoves.clear(); }
     
     // decide which squares a piece can move to - overridden in derived classes
     public void calculatePossibleMoves(
@@ -105,7 +106,7 @@ public class Piece {
                 
                 // check if opposite colored piece is blocking (add move but don't continue further)
                 if (squares[newIndex].hasOppositeColoredPiece(currentSquare)) {
-                    move.isCapture = true;
+                    move.setCapture(true);
                     
                     // FIXED: Replaced direct field access (.piece.name) with encapsulated getters (.getPiece().getName())
                     Piece targetPiece = squares[newIndex].getPiece();

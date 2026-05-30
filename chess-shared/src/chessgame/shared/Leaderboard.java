@@ -4,13 +4,16 @@
  */
 package chessgame.shared;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  *
  * @author arvid
  */
-public class Leaderboard {
+public class Leaderboard implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
     
     private final ArrayList<Player> players = new ArrayList<>();
     private final ArrayList<Match> matches = new ArrayList<>();

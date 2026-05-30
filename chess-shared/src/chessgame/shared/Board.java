@@ -10,60 +10,56 @@ import chessgame.shared.pieces.Rook;
 import chessgame.shared.pieces.King;
 import chessgame.shared.pieces.Bishop;
 import chessgame.shared.pieces.Knight;
+import java.util.ArrayList;
 
 /**
  *
  * @author arvid.renestam
  */
 public final class Board {
+    
     private final Square[] squares = new Square[64];
     
     private King whiteKing;
     private King blackKing;
     
     private Match currentMatch;
-    private boolean currentMatchHasStarted = false;
-    private boolean whiteToMove;
+    private ArrayList<Move> moves;
     
-    private Move lastMove;
-    private Move secondLastMove;
+    private boolean currentMatchHasStarted = false;
+    private boolean whiteToMove = true;
 
     public Board() {
-        whiteToMove = true;
-        lastMove = new Move();
-        secondLastMove = new Move();
         setStartingPosition();        
     }
     
     // getters
     public Square[] getSquares() { return squares; }
-    public boolean whiteToMove() { return whiteToMove; }
-    public Move getLastMove() { return lastMove; }
-    public Match getCurrentMatch() { return currentMatch; }
-    public boolean currentMatchHasStarted() { return currentMatchHasStarted; }
     public King getWhiteKing() { return whiteKing; }
     public King getBlackKing() { return blackKing; }
+    public Match getCurrentMatch() { return currentMatch; }
+    public boolean currentMatchHasStarted() { return currentMatchHasStarted; }
+    public boolean whiteToMove() { return whiteToMove; }
     
     // needs to get called before a new match starts
-    public void startNewMatch(Match match) {
+    public void startNewMatch(Match match, boolean currentPlayerIsWhite) {
         whiteToMove = true;
         currentMatchHasStarted = true;
         currentMatch = match;
-        lastMove = new Move();
+        moves = currentMatch.getMoves();
         
         setStartingPosition();
-        calculatePossibleMoves();
+        calculateValidMoves(currentPlayerIsWhite);
     }
     
     public boolean checkMatchIsWon() {
         // look for any valid possible moves for the side to move
         boolean canMove = false;
         for (Square square : squares) {
-            // FIXED: Used .getPiece() safely
             if (square.hasPiece() && square.getPiece().isWhite() == whiteToMove) {
                 boolean moveIsValid = false;
                 for (Move move : square.getPiece().getPossibleMoves()) {
-                    if (move.isValid) {
+                    if (move.isValid()) {
                         moveIsValid = true;
                         break;
                     }
@@ -87,13 +83,179 @@ public final class Board {
         }
         
         // no one has won, continue game
-        else {
-            return false;
-        }
+        else { return false; }
         
         // match is won
         currentMatchHasStarted = false;
         return true;
+    }
+    
+    public boolean makeMove(Move move, boolean currentPlayerIsWhite) {
+        if (move == null) return false;
+        if (!move.isValid()) return false;
+        if (!currentMatchHasStarted) return false;
+        if (!movePiece(move, false)) return false;
+        calculateValidMoves(currentPlayerIsWhite);
+        whiteToMove = !whiteToMove;
+        return true; // successfully moved piece;
+    }
+    
+    // only called directly when calculating possible moves (lacks validation)
+    private boolean movePiece(Move move, boolean isRevert) {
+        Square oldSquare = move.getOldSquare();
+        Square newSquare = move.getNewSquare();
+        
+        Piece oldSquarePiece = move.getOldSquarePiece();
+        Piece newSquarePiece = move.getNewSquarePiece();
+        
+        if (oldSquarePiece == null) return false; // nothing to move
+
+        if (!move.isSimulation) {
+            if (!currentMatchHasStarted) currentMatchHasStarted = true;
+            
+            if (isRevert) {
+                // Only pop from ledger trace if it's a permanent real game action
+                if (!move.isSimulation && !moves.isEmpty()) {
+                    moves.removeLast();
+                }
+            } else {
+                Move newMove = new Move(oldSquare, newSquare);
+                moves.add(newMove);
+            }
+        }
+
+        // update pieces to reflect the move
+        if (!isRevert) {
+            newSquare.setPiece(oldSquarePiece);
+            oldSquare.removePiece(); 
+        } else {
+            oldSquare.setPiece(oldSquarePiece);
+            newSquare.setPiece(newSquarePiece);
+        }
+
+        // promotion
+        if (move.isPromotion()) {
+            if (!isRevert) {
+                newSquare.setPiece(new Queen(oldSquarePiece.isWhite()));
+            } else {
+                newSquare.setPiece(move.getNewSquarePiece());
+                oldSquare.setPiece(move.getOldSquarePiece());
+            }
+        }
+
+        // en passant
+        else if (move.isEnpassant()) {
+            Square capturedPawnSquare = move.getAdditionalSquares()[0];
+            if (!isRevert) {
+                capturedPawnSquare.removePiece();
+            } else {
+                capturedPawnSquare.setPiece(move.getCapturedPiece());
+            }
+        }
+
+        // castling
+        else if (move.isCastle()) {
+            Square oldRookSquare = move.getAdditionalSquares()[0];
+            Square newRookSquare = move.getAdditionalSquares()[1];
+            
+            if (!isRevert) {
+                newRookSquare.setPiece(oldRookSquare.getPiece());
+                oldRookSquare.removePiece();
+            } else {
+                oldRookSquare.setPiece(newRookSquare.getPiece());
+                newRookSquare.removePiece();
+            }
+        }
+        
+        // Prevent temporary validation looks from changing permanent boolean history states
+        if (!move.isSimulation) {
+            if (isRevert) {
+                oldSquare.getPiece().hasMoved = oldSquare.getPiece().hadMovedLastMove;
+                if (newSquare.hasPiece()) {
+                    newSquare.getPiece().hasMoved = newSquare.getPiece().hadMovedLastMove;
+                }
+            } else {
+                if (newSquare.getPiece().hasMoved) {
+                    newSquare.getPiece().hadMovedLastMove = true;
+                } else {
+                    newSquare.getPiece().hasMoved = true;
+                }
+            }
+        }
+        
+        return true; // successfully made move
+    }
+
+
+    // goes through all pieces and updates possibleMoves
+    public void calculateValidMoves(boolean currentPlayerIsWhite) {
+        for (Square square : squares) {
+            Piece piece = square.getPiece();
+            
+            if (piece == null || currentPlayerIsWhite != whiteToMove || piece.isWhite() != whiteToMove) {
+                continue;
+            }
+            
+            piece.calculatePossibleMoves(squares, square, currentMatch.getLastMove());
+                
+            // go through the piece's possible moves for validation
+            for (Move move : piece.getPossibleMoves()) {
+                // Tag this step as a simulation to protect tracking registries
+                move.setSimulation(true); 
+
+                // silently move piece by later reverting the move
+                movePiece(move, false);
+
+                // calculate opponents' moves after the move
+                for (Square subsquare : squares) {
+                    if (!subsquare.hasPiece() || subsquare.getPiece().isWhite() == whiteToMove) {
+                        continue;
+                    }
+                    
+                    subsquare.getPiece().calculatePossibleMoves(
+                        squares, 
+                        subsquare, 
+                        move
+                    );
+
+                    boolean moveIsValid = true;
+
+                    // go through the moves to see if any attack the king
+                    for (Move submove : subsquare.getPiece().getPossibleMoves()) {
+                        submove.isSimulation = true; // Mark nested checks as simulation as well
+                        Square newSquare = submove.getNewSquare();
+                        if (newSquare.hasPiece() && 
+                            newSquare.getPiece().getName().equals("king") && 
+                            newSquare.getPiece().isWhite() == whiteToMove) {
+                            moveIsValid = false;
+                            break;
+                        }
+                    }
+
+                    if (!moveIsValid) {
+                        move.setValid(false);
+                        break;
+                    }
+                }
+
+                // revert the move
+                movePiece(move, true);
+            }
+        }
+        
+        // re-check if the king is under attack
+        King kingToCheck = whiteToMove ? whiteKing : blackKing;
+        kingToCheck.isAttacked = false;
+        for (Square square : squares) {
+            if (square.hasPiece() && square.getPiece().isWhite() != whiteToMove) {
+                for (Move move : square.getPiece().getPossibleMoves()) {
+                    if (move.isValid() && move.getNewSquare().getPiece() == kingToCheck) {
+                        kingToCheck.isAttacked = true;
+                        break;
+                    }
+                }
+            }
+        }
     }
     
     private void setStartingPosition() {
@@ -102,13 +264,16 @@ public final class Board {
             boolean isWhite = i % 2 == 0 && (i / 8) % 2 == 0 
                     || i % 2 != 0 && (i / 8) % 2 != 0;
             
-            // FIXED: Removed UI states from the Square constructor
             squares[i] = new Square(
                 i, 
                 startingPositionPiece(i), 
                 isWhite
             );
         }
+        
+        // assign kings for easier future reference
+        this.whiteKing = (King) squares[60].getPiece();
+        this.blackKing = (King) squares[4].getPiece();
     }
     
     // returns the piece that should be on the index in starting position
@@ -129,174 +294,9 @@ public final class Board {
             return new Queen(i == 59);
         } 
         if (i == 4 || i == 60) {
-            King king = new King(i == 60);
-            if (i == 60) {
-                whiteKing = king;
-            } else {
-                blackKing = king;
-            }
-            return king;
+            return new King(i == 60);
         } 
-        // FIXED: Return null instead of an empty Piece object for empty squares
         return null;
-    }
-    
-    public boolean movePiece(Move move) {
-        if (move == null) return false;
-        if (!move.isValid) return false;
-        if (!currentMatchHasStarted) return false;
-        movePiece(move, false);
-        calculatePossibleMoves();
-        whiteToMove = !whiteToMove;
-        return true; // successfully moved piece;
-    }
-    
-    // only called directly when calculating possible moves (lacks validation)
-    private void movePiece(Move move, boolean isRevert) {
-        Square oldSquare = move.getOldSquare();
-        Square newSquare = move.getNewSquare();
-        
-        Piece oldSquarePiece = move.getOldSquarePiece();
-        Piece newSquarePiece = move.getNewSquarePiece();
-        
-        if (oldSquarePiece == null) return; // nothing to move
-        
-        boolean isWhite = oldSquarePiece.isWhite();
-        
-        if (isWhite) currentMatch.incrementMovesPlayed();
-        if (!currentMatchHasStarted) currentMatchHasStarted = true;
-        
-        // FIXED: Removed the .setIsLastMove() calls entirely. We just track the Move objects now.
-        if (!isRevert) {
-            secondLastMove = lastMove;
-            lastMove = new Move(oldSquare, newSquare);          
-        } else {
-            lastMove = secondLastMove;
-        }
-
-        // update pieces to reflect the move
-        if (!isRevert) {
-            newSquare.setPiece(oldSquarePiece);
-            oldSquare.removePiece(); 
-        } else {
-            oldSquare.setPiece(oldSquarePiece);
-            newSquare.setPiece(newSquarePiece);
-        }
-
-        // promotion
-        if (move.isPromotion) {
-            if (!isRevert) {
-                newSquare.setPiece(new Queen(isWhite));
-            } else {
-                newSquare.setPiece(move.getNewSquarePiece());
-                oldSquare.setPiece(move.getOldSquarePiece());
-            }
-        }
-
-        // en passant
-        if (move.isEnPassant) {
-            Square capturedPawnSquare = move.getAdditionalSquares()[0];
-            if (!isRevert) {
-                capturedPawnSquare.removePiece();
-            } else {
-                capturedPawnSquare.setPiece(move.getCapturedPiece());
-            }
-        }
-
-        // castling
-        if (move.isCastle) {
-            Square oldRookSquare = move.getAdditionalSquares()[0];
-            Square newRookSquare = move.getAdditionalSquares()[1];
-            
-            if (!isRevert) {
-                newRookSquare.setPiece(oldRookSquare.getPiece());
-                oldRookSquare.removePiece();
-            } else {
-                oldRookSquare.setPiece(newRookSquare.getPiece());
-                newRookSquare.removePiece();
-            }
-        }
-        
-        // revert the previously made move
-        if (!isRevert) {
-            if (newSquare.getPiece().hasMoved) {
-                newSquare.getPiece().hadMovedLastMove = true;
-            } else {
-                newSquare.getPiece().hasMoved = true;
-            }
-        } else {
-            oldSquare.getPiece().hasMoved = oldSquare.getPiece().hadMovedLastMove;
-            if (newSquare.hasPiece()) {
-                newSquare.getPiece().hasMoved = newSquare.getPiece().hadMovedLastMove;
-            }
-        }
-    }
-
-
-    // goes through all pieces and updates possibleMoves
-    public void calculatePossibleMoves() {
-        for (Square square : squares) {
-            if (square.hasPiece() && square.getPiece().isWhite() == whiteToMove) {
-                square.getPiece().calculatePossibleMoves(
-                    squares, 
-                    square, 
-                    lastMove
-                );
-                
-                // go through the piece's possible moves for validation
-                for (Move move : square.getPiece().getPossibleMoves()) {
-                    // silently move piece by later reverting the move
-                    movePiece(move, false);
-                    
-                    // calculate opponents' moves after the move
-                    for (Square subsquare : squares) {
-                        if (subsquare.hasPiece() && subsquare.getPiece().isWhite() == !whiteToMove) {
-                            subsquare.getPiece().calculatePossibleMoves(
-                                squares, 
-                                subsquare, 
-                                move
-                            );
-                            
-                            boolean moveIsValid = true;
-                            
-                            // go through the moves to see if any attack the king, which would make the initial move invalid
-                            for (Move submove : subsquare.getPiece().getPossibleMoves()) {
-                                Square newSquare = submove.getNewSquare();
-                                // FIXED: Safe piece checking
-                                if (newSquare.hasPiece() && 
-                                    "king".equals(newSquare.getPiece().getName()) && 
-                                    newSquare.getPiece().isWhite() == whiteToMove) {
-                                    moveIsValid = false;
-                                    break;
-                                }
-                            }
-                            
-                            if (!moveIsValid) {
-                                move.isValid = false;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    // revert the move
-                    movePiece(move, true);
-                }
-            }
-        }
-        
-        // re-check if the king is under attack
-        King kingToCheck = whiteToMove ? whiteKing : blackKing;
-        kingToCheck.isAttacked = false;
-        for (Square square : squares) {
-            if (square.hasPiece() && square.getPiece().isWhite() != whiteToMove) {
-                for (Move move : square.getPiece().getPossibleMoves()) {
-                    if (move.isValid && move.getNewSquare().getPiece() == kingToCheck) {
-                        kingToCheck.isAttacked = true;
-                        break;
-                    }
-                }
-            }
-        }
     }
     
     // checks if the index exists on the board (0-63 is valid)

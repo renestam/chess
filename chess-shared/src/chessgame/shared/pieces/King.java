@@ -69,7 +69,7 @@ public final class King extends Piece {
 
                 Move move = new Move(currentSquare, newKingSquare);
 
-                move.isCastle = true;
+                move.setCastle(true);
                 Square[] additionalMoveSquares = {rookSquare, newRookSquare};
                 move.setAdditionalSquare(additionalMoveSquares);
 

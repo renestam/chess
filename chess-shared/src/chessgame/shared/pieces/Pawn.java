@@ -63,7 +63,7 @@ public final class Pawn extends Piece {
             // capture is possible if new square has different colored piece
             if (currentSquare.hasOppositeColoredPiece(squares[newIndex])) {
                 Move move = new Move(currentSquare, squares[newIndex]);
-                move.isCapture = true;
+                move.setCapture(true);
                 handlePromotion(move, squares, currentSquare, newIndex);
                 addPossibleMove(move);
                 
@@ -74,23 +74,37 @@ public final class Pawn extends Piece {
             
             // en passant en passant captures, look for pieces to the right and left
             for (int j = 0; j < enPassantOffsets.length; j++) {
-                // index of the piece getting captured
-                int captureIndex = currentIndex + enPassantOffsets[i] * offsetDirection; 
-                
+                // Changed enPassantOffsets[i] to enPassantOffsets[j] to match loop variable
+                int captureIndex = currentIndex + enPassantOffsets[j] * offsetDirection; 
+
+                // Guard clause. If there is no last move, en passant is impossible.
+                if (lastMove == null || lastMove.getNewSquare() == null || lastMove.getOldSquare() == null) {
+                    continue; 
+                }
+
                 Piece movedPiece = lastMove.getNewSquare().getPiece();
-                boolean isWhite = (movedPiece != null) && movedPiece.isWhite();
-                
-                // criterias for en passant
+                if (movedPiece == null) {
+                    continue; // If no piece is found on that square, skip
+                }
+
+                boolean isWhite = movedPiece.isWhite();
+
+                // Criteria for en passant evaluation
                 boolean captureIndexIsLastMove = lastMove.getNewSquare().getIndex() == captureIndex;
                 boolean lastMoveStartedOnSecondRank = lastMove.getOldSquare().isRelativeRow(1, isWhite);
                 boolean lastMoveIsOnFourthRank = lastMove.getNewSquare().isRelativeRow(3, isWhite);
+
                 if (captureIndexIsLastMove && lastMoveStartedOnSecondRank && lastMoveIsOnFourthRank) {
-                    Move move = new Move(currentSquare, squares[newIndex]);
-                    move.isEnPassant = true;
-                    move.setCapturedPiece(squares[captureIndex].getPiece());
-                    Square[] additionalSquares = {squares[captureIndex]};
-                    move.setAdditionalSquare(additionalSquares);
-                    addPossibleMove(move);
+                    // Ensure the target moving index and capture squares are valid array cells before adding
+                    if (Board.indexIsValid(newIndex) && Board.indexIsValid(captureIndex)) {
+                        Move move = new Move(currentSquare, squares[newIndex]);
+                        move.setEnpassant(true);
+                        move.setCapturedPiece(squares[captureIndex].getPiece());
+
+                        Square[] additionalSquares = {squares[captureIndex]};
+                        move.setAdditionalSquare(additionalSquares);
+                        addPossibleMove(move);
+                    }
                 }
             }
         }
@@ -103,7 +117,7 @@ public final class Pawn extends Piece {
         int newIndex
     ) {
         if (squares[newIndex].isRelativeRow(7, currentSquare.getPiece().isWhite())) {
-            move.isPromotion = true;
+            move.setPromotion(true);
         }
     }
     

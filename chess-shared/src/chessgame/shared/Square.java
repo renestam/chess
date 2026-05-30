@@ -1,6 +1,10 @@
 package chessgame.shared;
 
-public final class Square {
+import java.io.Serializable;
+
+public final class Square implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
     
     private final int index;
     private final int column;
@@ -46,4 +50,5 @@ public final class Square {
         int relativeRow = checkWhite ? 7 - rank : rank;
         return this.row == relativeRow;
     }
+    
 }

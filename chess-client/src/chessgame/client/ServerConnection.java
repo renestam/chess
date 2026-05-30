@@ -4,6 +4,7 @@
  */
 package chessgame.client;
 
+import chessgame.shared.Board;
 import chessgame.shared.Match;
 import chessgame.shared.Move;
 import java.io.IOException;
@@ -29,16 +30,16 @@ public class ServerConnection {
     public ServerConnection(String ipAddress, int port, GamePanel gamePanel) {
         this.gamePanel = gamePanel;
         try {
-            // 1. Connect to the server
+            // Connect to the server
             this.socket = new Socket(ipAddress, port);
             System.out.println("Connected to server!");
 
-            // 2. Set up Object streams. CRITICAL ORDER: Output must be first and flushed!
+            // Set up Object streams. CRITICAL ORDER: Output must be first and flushed!
             this.streamOut = new ObjectOutputStream(socket.getOutputStream());
             this.streamOut.flush();
             this.streamIn = new ObjectInputStream(socket.getInputStream());
 
-            // 3. Start listening for incoming objects from the server
+            // Start listening for incoming objects from the server
             startListening();
 
         } catch (IOException e) {
@@ -70,17 +71,24 @@ public class ServerConnection {
         this.listenerThread.start();
     }
 
-    /**
-     * Identifies what object type arrived from the server and routes it to the UI.
-     */
+    // Identifies what object type arrived from the server and routes it to the UI.
     private void processServerMessage(Object obj) {
         System.out.println("Received from server: " + obj.getClass().getSimpleName());
         
+        // MOVE
         if (obj instanceof Move move) {
-            // Update the board with the opponent's move
-            gamePanel.handleIncomingMove(move);
-            
-        } else if (obj instanceof Match match) {
+            // Grab the client's actual active engine board
+            Board localBoard = GamePanel.getClientBoard().getBoard();
+
+            // Re-bind the detached network references to the local memory layout
+            Move realLocalMove = move.bindToLocalBoard(localBoard);
+
+            // Pass the translated move safely to your UI updates
+            gamePanel.handleIncomingMove(realLocalMove);
+        } 
+        
+        // MATCH
+        else if (obj instanceof Match match) {
             // A match was found or completed
             if (match.getWhitePlayer() != null && match.getBlackPlayer() != null) {
                 if (match.isActive()) {
@@ -92,16 +100,15 @@ public class ServerConnection {
         }
     }
 
-    /**
-     * Sends any serializable object (Player profiles, Moves, etc.) to the server.
-     * @param obj
-     */
+    // Sends any serializable object (Player profiles, Moves, etc.) to the server.
     public void sendObject(Object obj) {
         try {
             if (streamOut != null) {
+                streamOut.reset();
                 streamOut.writeObject(obj);
                 streamOut.flush();
             }
+            System.out.println("Sent to server: " + obj.getClass().getSimpleName());
         } catch (IOException e) {
             System.out.println("Error sending object to server: " + e.getMessage());
         }
@@ -117,9 +124,7 @@ public class ServerConnection {
             if (streamOut != null) streamOut.close();
             if (socket != null && !socket.isClosed()) socket.close();
             System.out.println("Connection closed safely.");
-        } catch (IOException e) {
-            // Soft catch during forced closure
-        }
+        } catch (IOException e) {}
     }
     
 }

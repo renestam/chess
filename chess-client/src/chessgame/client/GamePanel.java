@@ -38,7 +38,7 @@ public class GamePanel extends javax.swing.JPanel {
         updateLeaderboard();
     }
     
-    public static ClientBoard getBoard() {
+    public static ClientBoard getClientBoard() {
         return board;
     }
     
@@ -63,7 +63,7 @@ public class GamePanel extends javax.swing.JPanel {
         });
         
         board.setIsWhitePerspective(match.getCurrentPlayerIsWhite());
-        board.getBoard().startNewMatch(match);
+        board.getBoard().startNewMatch(match, board.getIsWhitePerspective());
         
         repaint();
     }
@@ -90,12 +90,13 @@ public class GamePanel extends javax.swing.JPanel {
         board.setIsWhitePerspective(isWhitePerspective);
     }
 
-    /**
-     * Receives moves verified by the server thread and applies them to the Client board view.
-     */
     public void handleIncomingMove(Move move) {
         java.awt.EventQueue.invokeLater(() -> {
-            // board.applyMove(move); // Uncomment once your ClientBoard class has an execution framework
+            if (!board.getBoard().makeMove(move, board.getBoard().whiteToMove())) {
+                System.out.println("Unable to make incoming move.");
+            } else {
+                System.out.println("Successfuly made incoming move.");
+            }
             repaint();
         });
     }
@@ -122,7 +123,7 @@ public class GamePanel extends javax.swing.JPanel {
         int squareIndex = yIndex * 8 + xIndex;
         
         // update the clicked square
-        board.selectSquare(squareIndex);
+        board.selectSquare(squareIndex, serverConnection);
         repaint();
     }
     

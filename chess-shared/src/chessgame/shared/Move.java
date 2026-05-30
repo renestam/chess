@@ -12,26 +12,24 @@ import java.io.Serializable;
  */
 public final class Move implements Serializable {
     
-    private final Square oldSquare;
-    private final Square newSquare;
+    private static final long serialVersionUID = 1L;
     
-    private Piece oldSquarePiece;
-    private Piece newSquarePiece;
+    private final Square oldSquare; // where the piece started from
+    private final Square newSquare; // where the piece ended up
+    
+    private final Piece oldSquarePiece; // initial piece of old square
+    private final Piece newSquarePiece; // initial piece of new square
     
     private Square[] additionalSquares = null;
     private Piece capturedPiece;
     
-    public boolean isCapture = false;
-    public boolean isPromotion = false;
-    public boolean isEnPassant = false;
-    public boolean isCastle = false;
+    private boolean isCapture = false;
+    private boolean isPromotion = false;
+    private boolean isEnpassant = false;
+    private boolean isCastle = false;
     
-    public boolean isValid = true;
-    
-    public Move() {
-        this.oldSquare = new Square(64, null, true);
-        this.newSquare = new Square(64, null, true);
-    }
+    private boolean isValid = true;
+    public boolean isSimulation = false;
 
     public Move(Square oldSquare, Square newSquare) {
         this.oldSquare = oldSquare;
@@ -49,5 +47,48 @@ public final class Move implements Serializable {
     
     public void setAdditionalSquare(Square[] square) { additionalSquares = square; }
     public void setCapturedPiece(Piece piece) { capturedPiece = piece; }
+    
+    public boolean isCapture() { return isCapture; }
+    public boolean isPromotion() { return isPromotion; }
+    public boolean isEnpassant() { return isEnpassant; }
+    public boolean isCastle() { return isCastle; }
+    public boolean isValid() { return isValid; }
+    public boolean isSimulation() { return isSimulation; }
+    
+    public void setCapture(boolean b) { isCapture = b; }
+    public void setPromotion(boolean b) { isPromotion = b; }
+    public void setEnpassant(boolean b) { isEnpassant = b; }
+    public void setCastle(boolean b) { isCastle = b; }
+    public void setValid(boolean b) { isValid = b; }
+    public void setSimulation(boolean b) { isSimulation = b; }
+    
+    // Because the server and client use different board instances, 
+    // the client can't use the squares passed by server in Move object.
+    // That's basically why we need this method. And honestly,
+    // I pretty much felt like a genius when I figured this out.
+    public Move bindToLocalBoard(Board localBoard) {
+        Square localOld = localBoard.getSquares()[this.oldSquare.getIndex()];
+        Square localNew = localBoard.getSquares()[this.newSquare.getIndex()];
+
+        // Create a clean local Move copy mapped to the correct RAM addresses
+        Move localizedMove = new Move(localOld, localNew);
+        localizedMove.isCapture = this.isCapture;
+        localizedMove.isPromotion = this.isPromotion;
+        localizedMove.isEnpassant = this.isEnpassant;
+        localizedMove.isCastle = this.isCastle;
+        localizedMove.isValid = this.isValid;
+
+        // Copy additional layout arrays if handles promotions/castles
+        if (this.additionalSquares != null) {
+            Square[] localAdditional = new Square[this.additionalSquares.length];
+            for(int i = 0; i < this.additionalSquares.length; i++) {
+                localAdditional[i] = localBoard.getSquares()[this.additionalSquares[i].getIndex()];
+            }
+            localizedMove.setAdditionalSquare(localAdditional);
+        }
+        localizedMove.setCapturedPiece(this.capturedPiece);
+
+        return localizedMove;
+    }
     
 }

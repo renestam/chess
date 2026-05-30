@@ -14,7 +14,7 @@ import java.util.Scanner;
 
 /**
  *
- * @author arvid
+ * @author arvid.renestam
  */
 public class ServerLeaderboard {
     
